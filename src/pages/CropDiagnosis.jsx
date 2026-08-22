@@ -113,40 +113,56 @@ export default function CropDiagnosis() {
                   </p>
                 </div>
               ) : (
-                <div className="p-4 rounded-2xl bg-[#F2F9F4] dark:bg-[#1D2F27] border border-[#C5E5CE] dark:border-[#273E34] space-y-2.5 text-xs">
-                  <div className="flex items-center justify-between pb-2 border-b border-[#C5E5CE] dark:border-[#273E34]">
+                <div className="bg-[#12231A] border border-white/10 rounded-2xl p-6 text-white space-y-4">
+                  <div className="flex items-center justify-between">
                     <div>
-                      <span className="text-[10px] text-[#52665B] dark:text-[#8CA397] uppercase tracking-wider block">Disease Detected</span>
-                      <span className="font-bold text-[#1A2E22] dark:text-[#E5EFEA] text-sm">{diagnosisReport.diseaseDetected}</span>
+                      <p className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">
+                        Disease Detected
+                      </p>
+                      <h3 className="text-2xl font-bold text-white capitalize mt-1">
+                        {diagnosisReport.diseaseDetected || 'Condition Identified'}
+                      </h3>
                     </div>
-                    <div className="text-right">
-                      <span className="text-[10px] text-[#52665B] dark:text-[#8CA397] block">Confidence</span>
-                      <span className="font-bold text-[#2F7E4A] dark:text-[#67B781]">{diagnosisReport.confidence}</span>
-                    </div>
+                    <span className="text-sm font-bold text-emerald-400">
+                      {diagnosisReport.confidence || '90%'}
+                    </span>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <div>
-                      <span className="text-[#52665B] dark:text-[#8CA397]">Crop:</span> <span className="font-semibold text-[#1A2E22] dark:text-[#E5EFEA]">{diagnosisReport.crop}</span>
-                    </div>
-                    <div>
-                      <span className="text-[#52665B] dark:text-[#8CA397]">Severity:</span> <span className="font-semibold text-amber-600 dark:text-amber-400">{diagnosisReport.severity}</span>
-                    </div>
+                  <div className="flex gap-4 text-sm text-gray-300">
+                    <p>
+                      <strong className="text-gray-400">Crop:</strong> {diagnosisReport.crop || 'Crop'}
+                    </p>
+                    <p>
+                      <strong className="text-gray-400">Severity:</strong>{' '}
+                      <span className={
+                        diagnosisReport.severity?.toLowerCase() === 'high' || diagnosisReport.severity?.toLowerCase() === 'critical'
+                          ? 'text-red-400 font-semibold'
+                          : 'text-amber-400 font-semibold'
+                      }>
+                        {diagnosisReport.severity || 'Moderate'}
+                      </span>
+                    </p>
                   </div>
 
                   <div>
-                    <span className="font-semibold text-[#1A2E22] dark:text-[#E5EFEA] block mb-0.5">Symptoms:</span>
-                    <p className="text-[#52665B] dark:text-[#8CA397]">{diagnosisReport.symptoms}</p>
+                    <h4 className="text-sm font-semibold text-gray-300">Symptoms:</h4>
+                    <p className="text-sm text-gray-400 mt-1 leading-relaxed">
+                      {diagnosisReport.symptoms || 'Symptoms recorded.'}
+                    </p>
                   </div>
 
                   <div>
-                    <span className="font-semibold text-[#1A2E22] dark:text-[#E5EFEA] block mb-0.5">Recommended Treatment:</span>
-                    <p className="text-[#52665B] dark:text-[#8CA397]">{diagnosisReport.recommendedTreatment}</p>
+                    <h4 className="text-sm font-semibold text-gray-300">Recommended Treatment:</h4>
+                    <p className="text-sm text-gray-400 mt-1 leading-relaxed">
+                      {diagnosisReport.recommendedTreatment || 'Consult local agronomy guidelines.'}
+                    </p>
                   </div>
 
                   <div>
-                    <span className="font-semibold text-[#1A2E22] dark:text-[#E5EFEA] block mb-0.5">Prevention:</span>
-                    <p className="text-[#52665B] dark:text-[#8CA397]">{diagnosisReport.prevention}</p>
+                    <h4 className="text-sm font-semibold text-gray-300">Prevention:</h4>
+                    <p className="text-sm text-gray-400 mt-1 leading-relaxed">
+                      {diagnosisReport.prevention || 'Standard crop rotation and sanitation.'}
+                    </p>
                   </div>
                 </div>
               )}

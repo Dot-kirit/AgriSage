@@ -13,9 +13,14 @@ export default function Dashboard() {
 
   return (
     <div className="flex-1 p-6 md:p-8 space-y-6 overflow-y-auto">
-      <div className="flex flex-col sm:row sm:items-center justify-between gap-4">
-        <CountrySelector />
-        <LanguageSelector />
+      {/* Country on the far left, Language pushed to the far right */}
+      <div className="flex flex-row items-center justify-between gap-4">
+        <div>
+          <CountrySelector />
+        </div>
+        <div className="flex justify-end">
+          <LanguageSelector />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">

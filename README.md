@@ -28,7 +28,10 @@ AgriSage is a precision agriculture and agronomy platform providing real-time te
 
 ```text
 agrisage/
-├── public/
+├── api/                          # Serverless backend functions (Vertex AI / Gemini)
+│   ├── chat.js                   # Multilingual AI agronomist endpoint
+│   ├── crop-diagnosis.js         # Leaf disease vision analysis endpoint
+│   └── crop-recommendations.js   # Dynamic crop suitability advisory endpoint
 ├── src/
 │   ├── components/
 │   │   ├── BestCropCard.jsx      # Recommended crop card & metrics
@@ -54,8 +57,13 @@ agrisage/
 │   └── main.jsx                  # React application entry point
 ├── .env.example
 ├── .gitignore
+├── index.html
 ├── package.json
+├── package-lock.json
+├── postcss.config.js
+├── README.md
 ├── tailwind.config.js
+├── vercel.json
 └── vite.config.js
 ```
 

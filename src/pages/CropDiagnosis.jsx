@@ -2,8 +2,6 @@ import React, { useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { UploadCloud, X, ArrowLeft, FileText, Sparkles, Loader2 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import CountrySelector from '../components/CountrySelector';
-import LanguageSelector from '../components/LanguageSelector';
 
 export default function CropDiagnosis() {
   const navigate = useNavigate();
@@ -24,11 +22,6 @@ export default function CropDiagnosis() {
 
   return (
     <div className="flex-1 p-6 md:p-8 space-y-6 overflow-y-auto">
-      <div className="flex flex-col sm:row sm:items-center justify-between gap-4">
-        <CountrySelector />
-        <LanguageSelector />
-      </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-2">
         <div className="p-6 rounded-2xl bg-white dark:bg-[#16231D] border border-[#E5ECE8] dark:border-[#273E34] shadow-soft flex flex-col justify-between">
           <div>
@@ -61,7 +54,7 @@ export default function CropDiagnosis() {
                   <img src={previewUrl} alt="Crop Leaf Preview" className="w-full h-full object-contain" />
                   <button
                     onClick={handleClearImage}
-                    className="absolute top-2.5 right-2.5 p-1.5 bg-black/60 hover:bg-black/80 text-white rounded-full transition-all"
+                    className="absolute top-2.5 right-2.5 p-1.5 bg-black/60 hover:bg-black/80 text-white rounded-full transition-all cursor-pointer"
                     title="Remove Image"
                   >
                     <X className="w-4 h-4" />
@@ -87,7 +80,7 @@ export default function CropDiagnosis() {
                 className={`py-2 px-4 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm ${
                   !previewUrl || isAnalyzing
                     ? 'bg-gray-200 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
-                    : 'bg-[#419C5F] hover:bg-[#2F7E4A] text-white'
+                    : 'bg-[#419C5F] hover:bg-[#2F7E4A] text-white cursor-pointer'
                 }`}
               >
                 {isAnalyzing ? (
@@ -174,7 +167,7 @@ export default function CropDiagnosis() {
       <div className="pt-2">
         <button
           onClick={() => navigate('/dashboard')}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-[#52665B] dark:text-[#8CA397] hover:text-[#1A2E22] dark:hover:text-[#E5EFEA] bg-white dark:bg-[#16231D] border border-[#E5ECE8] dark:border-[#273E34] hover:bg-[#F2F9F4] dark:hover:bg-[#1D2F27] transition-all shadow-sm"
+          className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-[#52665B] dark:text-[#8CA397] hover:text-[#1A2E22] dark:hover:text-[#E5EFEA] bg-white dark:bg-[#16231D] border border-[#E5ECE8] dark:border-[#273E34] hover:bg-[#F2F9F4] dark:hover:bg-[#1D2F27] transition-all shadow-sm cursor-pointer"
         >
           <ArrowLeft className="w-4 h-4" />
           <span>Back to Overview</span>

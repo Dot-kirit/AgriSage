@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, Sprout } from 'lucide-react';
-import { signUp, logIn } from '../authService';
+import { signUp, logIn, signInWithGoogle } from '../services/authService';
 import { doc, setDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db } from '../services/firebase';
+import { useApp } from '../context/AppContext';
 
 function getUserLocation() {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     if (!navigator.geolocation) {
-      reject("Geolocation not supported");
+      resolve(null);
       return;
     }
     navigator.geolocation.getCurrentPosition(
@@ -19,44 +20,104 @@ function getUserLocation() {
         });
       },
       (error) => {
-        reject(error.message);
-      }
+        console.warn("Geolocation denied/failed:", error.message);
+        resolve(null);
+      },
+      { timeout: 8000 }
     );
   });
 }
 
 export default function Login() {
   const navigate = useNavigate();
+  const { setUserLocation } = useApp();
+
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleAuth = async (e) => {
-  e.preventDefault();
-  try {
-    let user;
-    if (isSignUp) {
-      user = await signUp(email, password, "India", "en");
-    } else {
-      user = await logIn(email, password);
-    }
-
+  // Sync GPS Coordinates & Reverse Geocode City/District
+  const syncLocation = async (user) => {
     try {
       const coords = await getUserLocation();
-      await setDoc(doc(db, "users", user.uid), 
-        { location: coords }, 
-        { merge: true }
-      );
-    } catch (locError) {
-      console.warn("Location not captured:", locError);
-    }
+      if (coords?.latitude && coords?.longitude) {
+        let districtName = 'Local Field';
+        let stateName = '';
 
-    navigate('/dashboard');
-  } catch (error) {
-    alert((isSignUp ? "Sign up" : "Login") + " failed: " + error.message);
-  }
-};
+        try {
+          const geoRes = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${coords.latitude}&lon=${coords.longitude}&format=json`
+          );
+          const geoData = await geoRes.json();
+          
+          districtName = 
+            geoData.address.city || 
+            geoData.address.town || 
+            geoData.address.state_district || 
+            geoData.address.county || 
+            'Your Field';
+            
+          stateName = geoData.address.state || '';
+        } catch (geoErr) {
+          console.warn("Geocoding lookup skipped:", geoErr);
+        }
+
+        // 1. Update AppContext so the Dashboard updates immediately
+        setUserLocation({
+          district: districtName,
+          state: stateName,
+          lat: coords.latitude,
+          lon: coords.longitude,
+        });
+
+        // 2. Persist to Firestore
+        if (user?.uid) {
+          await setDoc(
+            doc(db, "users", user.uid),
+            { location: { ...coords, district: districtName, state: stateName } },
+            { merge: true }
+          );
+        }
+      }
+    } catch (locErr) {
+      console.warn("Location sync bypassed:", locErr);
+    }
+  };
+
+  const handleAuth = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      let user;
+      if (isSignUp) {
+        user = await signUp(email, password, "India", "en");
+      } else {
+        user = await logIn(email, password);
+      }
+
+      await syncLocation(user);
+      navigate('/dashboard');
+    } catch (error) {
+      alert((isSignUp ? "Sign up" : "Login") + " failed: " + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleAuth = async () => {
+    setLoading(true);
+    try {
+      const user = await signInWithGoogle();
+      await syncLocation(user);
+      navigate('/dashboard');
+    } catch (error) {
+      alert("Google Sign-In failed: " + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div 
@@ -75,8 +136,12 @@ export default function Login() {
         </div>
 
         <div className="text-center mb-5">
-          <h2 className="text-lg font-bold text-[#1A2E22] dark:text-[#E5EFEA]">Welcome Back!</h2>
-          <p className="text-xs text-[#52665B] dark:text-[#8CA397]">Login to continue to AgriSage</p>
+          <h2 className="text-lg font-bold text-[#1A2E22] dark:text-[#E5EFEA]">
+            {isSignUp ? 'Create an Account' : 'Welcome Back!'}
+          </h2>
+          <p className="text-xs text-[#52665B] dark:text-[#8CA397]">
+            {isSignUp ? 'Sign up to start monitoring your field' : 'Login to continue to AgriSage'}
+          </p>
         </div>
 
         <form onSubmit={handleAuth} className="space-y-3.5">
@@ -84,6 +149,7 @@ export default function Login() {
             <Mail className="w-4 h-4 text-[#8CA397] absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="email"
+              required
               placeholder="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -95,6 +161,7 @@ export default function Login() {
             <Lock className="w-4 h-4 text-[#8CA397] absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type={showPassword ? 'text' : 'password'}
+              required
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -111,21 +178,23 @@ export default function Login() {
 
           <button
             type="submit"
-            className="w-full py-2.5 px-4 bg-[#419C5F] hover:bg-[#2F7E4A] text-white text-xs font-semibold rounded-xl flex items-center justify-center gap-2 shadow-sm transition-all mt-2"
+            disabled={loading}
+            className="w-full py-2.5 px-4 bg-[#419C5F] hover:bg-[#2F7E4A] disabled:opacity-50 text-white text-xs font-semibold rounded-xl flex items-center justify-center gap-2 shadow-sm transition-all mt-2 cursor-pointer"
           >
-            <span>{isSignUp ? 'Sign Up' : 'Login to Dashboard'}</span>
+            <span>{loading ? 'Processing...' : isSignUp ? 'Sign Up' : 'Login to Dashboard'}</span>
           </button>
         </form>
+
         <p className="text-center text-xs text-[#52665B] dark:text-[#8CA397] mt-3">
-  {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
-  <button
-    type="button"
-    onClick={() => setIsSignUp(!isSignUp)}
-    className="text-[#419C5F] font-semibold hover:underline"
-  >
-    {isSignUp ? "Login" : "Sign Up"}
-  </button>
-</p>
+          {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
+          <button
+            type="button"
+            onClick={() => setIsSignUp(!isSignUp)}
+            className="text-[#419C5F] font-semibold hover:underline cursor-pointer"
+          >
+            {isSignUp ? "Login" : "Sign Up"}
+          </button>
+        </p>
 
         <div className="relative my-4 flex items-center justify-center">
           <div className="border-t border-[#E5ECE8] dark:border-[#273E34] w-full" />
@@ -133,8 +202,10 @@ export default function Login() {
         </div>
 
         <button
-          onClick={handleAuth}
-          className="w-full py-2.5 px-4 bg-white dark:bg-[#0F1713] text-[#1A2E22] dark:text-[#E5EFEA] border border-[#E5ECE8] dark:border-[#273E34] hover:bg-[#F2F9F4] dark:hover:bg-[#1D2F27] text-xs font-medium rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm"
+          type="button"
+          onClick={handleGoogleAuth}
+          disabled={loading}
+          className="w-full py-2.5 px-4 bg-white dark:bg-[#0F1713] text-[#1A2E22] dark:text-[#E5EFEA] border border-[#E5ECE8] dark:border-[#273E34] hover:bg-[#F2F9F4] dark:hover:bg-[#1D2F27] text-xs font-medium rounded-xl flex items-center justify-center gap-2 transition-all shadow-sm cursor-pointer disabled:opacity-50"
         >
           <svg className="w-4 h-4" viewBox="0 0 24 24">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -144,10 +215,6 @@ export default function Login() {
           </svg>
           <span>Sign in with Google</span>
         </button>
-
-        <p className="text-[10px] text-center text-[#8CA397] mt-5 leading-relaxed">
-          By continuing, you agree to our Terms of Use and Privacy Policy.
-        </p>
       </div>
     </div>
   );

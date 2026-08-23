@@ -1,7 +1,8 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import cropDiagnosisHandler from './api/crop-diagnosis.js';
-import chatHandler from './api/chat.js'; // 1. Import chat handler
+import chatHandler from './api/chat.js'; 
+import cropRecHandler from './api/crop-recommendations.js';
 
 export default defineConfig({
   plugins: [
@@ -9,7 +10,6 @@ export default defineConfig({
     {
       name: 'api-server-middleware',
       configureServer(server) {
-        // Body parser helper for raw requests
         const parseBody = (req) =>
           new Promise((resolve) => {
             let body = '';
@@ -41,8 +41,14 @@ export default defineConfig({
 
           if (req.url === '/api/chat' && req.method === 'POST') {
             req.body = await parseBody(req);
-            return chatHandler(req, res); // 2. Handle /api/chat
+            return chatHandler(req, res); 
           }
+
+          if (req.url === '/api/crop-recommendations' && req.method === 'POST') {
+            req.body = await parseBody(req);
+            return cropRecHandler(req, res);
+          }
+
 
           next();
         });

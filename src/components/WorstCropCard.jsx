@@ -1,35 +1,68 @@
 import React from 'react';
-import { AlertTriangle, ArrowRight } from 'lucide-react';
-import { mockWorstCropData } from '../data/mockData';
+import { AlertTriangle, ShieldAlert, XCircle } from 'lucide-react';
+import { useApp } from '../context/AppContext';
 
 export default function WorstCropCard() {
+  const { cropRecommendations, isLoadingDashboard, userLocation } = useApp();
+  const worstCrop = cropRecommendations?.worstCrop;
+
   return (
-    <div className="p-6 rounded-2xl bg-[#FDF2F2] dark:bg-[#281518] border border-[#FAD2D2] dark:border-[#4D2327] flex flex-col justify-between shadow-soft hover:shadow-md transition-all">
-      <div>
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-10 h-10 rounded-xl bg-[#FCE0E0] dark:bg-[#401C20] flex items-center justify-center text-[#DC2626] dark:text-[#F87171]">
-            <AlertTriangle className="w-5 h-5" />
+    <div className="p-5 rounded-2xl bg-white dark:bg-[#16231D] border border-[#E5ECE8] dark:border-[#273E34] shadow-sm flex flex-col justify-between">
+      {/* Card Header */}
+      <div className="flex items-center justify-between border-b border-[#E5ECE8] dark:border-[#273E34] pb-3 mb-4">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-rose-50 dark:bg-rose-950/40 flex items-center justify-center text-rose-600 dark:text-rose-400">
+            <AlertTriangle className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="font-bold text-base text-[#1A2E22] dark:text-[#E5EFEA]">{mockWorstCropData.title}</h3>
-            <p className="text-xs text-[#52665B] dark:text-[#8CA397]">{mockWorstCropData.subtitle}</p>
+            <h3 className="font-semibold text-sm text-[#1A2E22] dark:text-[#E5EFEA]">
+              High Risk / Unfavorable Crop
+            </h3>
+            <span className="text-[11px] text-[#52665B] dark:text-[#8CA397]">
+              Current Climate Risk for {userLocation?.district || 'Your Region'}
+            </span>
           </div>
         </div>
-
-        <div className="grid grid-cols-2 gap-y-2.5 gap-x-4 mt-5 text-xs">
-          <div className="text-[#52665B] dark:text-[#8CA397]">Not Recommended</div>
-          <div className="font-semibold text-right text-[#1A2E22] dark:text-[#E5EFEA]">{mockWorstCropData.notRecommended}</div>
-          <div className="text-[#52665B] dark:text-[#8CA397]">Reason</div>
-          <div className="font-semibold text-right text-[#1A2E22] dark:text-[#E5EFEA]">{mockWorstCropData.reason}</div>
-          <div className="text-[#52665B] dark:text-[#8CA397]">Risk Factor</div>
-          <div className="font-semibold text-right text-[#1A2E22] dark:text-[#E5EFEA]">{mockWorstCropData.riskFactor}</div>
-        </div>
+        {worstCrop?.riskLevel && (
+          <span className="text-xs font-semibold px-2.5 py-1 bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 border border-rose-500/20 rounded-full flex items-center gap-1">
+            <XCircle className="w-3 h-3" />
+            {worstCrop.riskLevel}
+          </span>
+        )}
       </div>
 
-      <button className="flex items-center gap-1.5 text-xs font-semibold text-[#DC2626] dark:text-[#F87171] mt-6 group self-start hover:underline">
-        <span>View Details</span>
-        <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
-      </button>
+      {/* Content Body */}
+      {isLoadingDashboard || !worstCrop ? (
+        <div className="space-y-3 py-2 animate-pulse">
+          <div className="h-5 bg-gray-200 dark:bg-[#273E34] rounded w-1/3"></div>
+          <div className="h-4 bg-gray-200 dark:bg-[#273E34] rounded w-full"></div>
+          <div className="h-4 bg-gray-200 dark:bg-[#273E34] rounded w-2/3"></div>
+        </div>
+      ) : (
+        <div className="space-y-3.5">
+          <div className="flex items-baseline justify-between">
+            <span className="text-lg font-bold text-rose-600 dark:text-rose-400">
+              {worstCrop.name}
+            </span>
+            <span className="text-xs font-medium text-[#52665B] dark:text-[#8CA397]">
+              Threat: <strong className="text-rose-600 dark:text-rose-400">{worstCrop.primaryThreat}</strong>
+            </span>
+          </div>
+
+          <p className="text-xs text-[#52665B] dark:text-[#8CA397] leading-relaxed">
+            {worstCrop.reason}
+          </p>
+
+          <div className="pt-2 border-t border-[#E5ECE8] dark:border-[#273E34] flex items-center justify-between text-xs">
+            <span className="text-[#52665B] dark:text-[#8CA397] flex items-center gap-1.5">
+              <ShieldAlert className="w-3.5 h-3.5 text-rose-500" /> Advisory Action
+            </span>
+            <span className="font-semibold text-rose-600 dark:text-rose-400">
+              Avoid Sowing / Delay Cycle
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

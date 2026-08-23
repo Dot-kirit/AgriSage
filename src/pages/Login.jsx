@@ -1,17 +1,62 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, Sprout } from 'lucide-react';
+import { signUp, logIn } from '../authService';
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from '../firebase';
+
+function getUserLocation() {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject("Geolocation not supported");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        resolve({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude
+        });
+      },
+      (error) => {
+        reject(error.message);
+      }
+    );
+  });
+}
 
 export default function Login() {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isSignUp, setIsSignUp] = useState(false);
 
-  const handleAuth = (e) => {
-    e.preventDefault();
+  const handleAuth = async (e) => {
+  e.preventDefault();
+  try {
+    let user;
+    if (isSignUp) {
+      user = await signUp(email, password, "India", "en");
+    } else {
+      user = await logIn(email, password);
+    }
+
+    try {
+      const coords = await getUserLocation();
+      await setDoc(doc(db, "users", user.uid), 
+        { location: coords }, 
+        { merge: true }
+      );
+    } catch (locError) {
+      console.warn("Location not captured:", locError);
+    }
+
     navigate('/dashboard');
-  };
+  } catch (error) {
+    alert((isSignUp ? "Sign up" : "Login") + " failed: " + error.message);
+  }
+};
 
   return (
     <div 
@@ -68,9 +113,19 @@ export default function Login() {
             type="submit"
             className="w-full py-2.5 px-4 bg-[#419C5F] hover:bg-[#2F7E4A] text-white text-xs font-semibold rounded-xl flex items-center justify-center gap-2 shadow-sm transition-all mt-2"
           >
-            <span>Login to Dashboard</span>
+            <span>{isSignUp ? 'Sign Up' : 'Login to Dashboard'}</span>
           </button>
         </form>
+        <p className="text-center text-xs text-[#52665B] dark:text-[#8CA397] mt-3">
+  {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
+  <button
+    type="button"
+    onClick={() => setIsSignUp(!isSignUp)}
+    className="text-[#419C5F] font-semibold hover:underline"
+  >
+    {isSignUp ? "Login" : "Sign Up"}
+  </button>
+</p>
 
         <div className="relative my-4 flex items-center justify-center">
           <div className="border-t border-[#E5ECE8] dark:border-[#273E34] w-full" />

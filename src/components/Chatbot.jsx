@@ -1,19 +1,69 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Bot, Send, ChevronRight, ChevronLeft, Loader2 } from 'lucide-react';
+import { Bot, Send, ChevronRight, ChevronLeft, Loader2, Mic, MicOff } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 export default function Chatbot() {
   const { chatOpen, setChatOpen, chatMessages, sendChatMessage, isChatLoading } = useApp();
   const [inputText, setInputText] = useState('');
+  const [isListening, setIsListening] = useState(false);
   const messagesEndRef = useRef(null);
+  const recognitionRef = useRef(null);
 
+  // Auto-scroll to latest message
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages, isChatLoading]);
 
+  // Initialize Speech-to-Text
+  useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    
+    if (SpeechRecognition) {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false; // Stops automatically when user pauses
+      recognition.interimResults = false; // Only gets final results to avoid duplicating text
+      recognition.lang = 'en-US'; // Adjust if you are targeting local farmers in other languages
+
+      recognition.onstart = () => setIsListening(true);
+      recognition.onend = () => setIsListening(false);
+      recognition.onerror = (event) => {
+        console.error('Speech recognition error:', event.error);
+        setIsListening(false);
+      };
+
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        // Append voice text to whatever is already in the input box
+        setInputText((prev) => (prev ? `${prev} ${transcript}` : transcript));
+      };
+
+      recognitionRef.current = recognition;
+    }
+  }, []);
+
+  const toggleListening = (e) => {
+    e.preventDefault();
+    if (!recognitionRef.current) {
+      alert("Voice input is not supported in this browser. Please use Chrome or Edge.");
+      return;
+    }
+
+    if (isListening) {
+      recognitionRef.current.stop();
+    } else {
+      recognitionRef.current.start();
+    }
+  };
+
   const handleSend = (e) => {
     e.preventDefault();
     if (!inputText.trim() || isChatLoading) return;
+    
+    // Stop listening if user hits send while mic is active
+    if (isListening) {
+      recognitionRef.current?.stop();
+    }
+    
     sendChatMessage(inputText);
     setInputText('');
   };
@@ -104,12 +154,29 @@ export default function Chatbot() {
             value={inputText}
             disabled={isChatLoading}
             onChange={(e) => setInputText(e.target.value)}
-            placeholder="Type your message..."
-            className="flex-1 px-3.5 py-2 text-xs bg-[#F8FAF9] dark:bg-[#0F1713] text-[#1A2E22] dark:text-[#E5EFEA] border border-[#E5ECE8] dark:border-[#273E34] rounded-xl focus:outline-none focus:ring-1 focus:ring-[#419C5F] disabled:opacity-50"
+            placeholder={isListening ? "Listening..." : "Type your message..."}
+            className={`flex-1 px-3.5 py-2 text-xs bg-[#F8FAF9] dark:bg-[#0F1713] text-[#1A2E22] dark:text-[#E5EFEA] border ${isListening ? 'border-red-400 dark:border-red-500' : 'border-[#E5ECE8] dark:border-[#273E34]'} rounded-xl focus:outline-none focus:ring-1 focus:ring-[#419C5F] disabled:opacity-50 transition-all`}
           />
+          
+          {/* Speech-to-Text Button */}
+          <button
+            type="button"
+            onClick={toggleListening}
+            disabled={isChatLoading}
+            className={`p-2 rounded-xl shadow-sm transition-all flex items-center justify-center ${
+              isListening
+                ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse'
+                : 'bg-[#F2F9F4] dark:bg-[#1D2F27] text-[#419C5F] hover:bg-[#E1F2E6] dark:hover:bg-[#273E34] border border-[#E5ECE8] dark:border-[#273E34]'
+            } disabled:opacity-50 disabled:cursor-not-allowed`}
+            title={isListening ? "Stop listening" : "Start Voice Input"}
+          >
+            {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+          </button>
+
+          {/* Send Button */}
           <button
             type="submit"
-            disabled={isChatLoading || !inputText.trim()}
+            disabled={isChatLoading || (!inputText.trim() && !isListening)}
             className="p-2 bg-[#419C5F] hover:bg-[#2F7E4A] disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl shadow-sm transition-all"
           >
             <Send className="w-3.5 h-3.5" />
